@@ -22,13 +22,7 @@
 
 #include <mesos/module/hook.hpp>
 
-#include <process/future.hpp>
-#include <process/process.hpp>
 #include <process/protobuf.hpp>
-
-#include <stout/foreach.hpp>
-#include <stout/os.hpp>
-#include <stout/try.hpp>
 
 using namespace mesos;
 
@@ -43,6 +37,8 @@ public:
       const ExecutorInfo& executorInfo)
   {
     LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
+    LOG(INFO) << "C++ is fun! hook";
+    LOG(INFO) << "Name: " << executorInfo.name();
 
     Environment environment;
 
@@ -56,6 +52,17 @@ public:
 
     return environment;
   }
+
+  virtual Try<Nothing> slavePostFetchHook(
+      const ContainerID& containerId,
+      const std::string& directory)
+  {
+    LOG(INFO) << "Executing 'slavePostFetchHook' hook";
+    LOG(INFO) << "ContainerID: " << containerId.value() << ". directory: " << directory;
+
+    return Nothing();
+  }
+
 };
 
 
