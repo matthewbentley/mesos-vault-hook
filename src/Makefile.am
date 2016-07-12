@@ -31,6 +31,6 @@ AM_LIBS = $(PTHREAD_LIBS)
 AM_CPPFLAGS = $(MESOS_CPPFLAGS) -Wall -Werror
 
 # Library containing test hook module.
-pkglib_LTLIBRARIES += libtesthook.la
-libtesthook_la_SOURCES = hook/test_hook_module.cpp
-libtesthook_la_LDFLAGS = -release $(PACKAGE_VERSION) -shared $(MESOS_LDFLAGS)
+pkglib_LTLIBRARIES += libvaulthook.la
+libvaulthook_la_SOURCES = hook/vault_hook_module.cpp
+libvaulthook_la_LDFLAGS = -release $(PACKAGE_VERSION) -shared $(MESOS_LDFLAGS)
