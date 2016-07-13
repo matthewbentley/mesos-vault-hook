@@ -23,7 +23,7 @@
 #include <mesos/module/hook.hpp>
 
 #include <process/protobuf.hpp>
-
+#include <process/process.hpp>
 #include <process/future.hpp>
 
 #include <stout/none.hpp>
@@ -31,59 +31,94 @@
 #include <stout/result.hpp>
 #include <stout/try.hpp>
 #include <stout/option.hpp>
+#include <stout/foreach.hpp>
+#include <stout/os.hpp>
 
 using namespace mesos;
 
+using std::map;
+using std::string;
+
+using process::Failure;
 using process::Future;
+
+const char* testLabelKey = "MESOS_Test_Label";
+const char* testLabelValue = "ApacheMesos";
+const char* testRemoveLabelKey = "MESOS_Test_Remove_Label";
+const char* testErrorLabelKey = "MESOS_Test_Error_Label";
+
 
 class VaultHook : public Hook
 {
 public:
-//  // In this hook, we create a new environment variable "FOO" and set
-//  // it's value to "bar".
-//  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
-//      const ExecutorInfo& executorInfo)
-//  {
-//    LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
-//    LOG(INFO) << "Name: " << executorInfo.name();
-//
-//    Environment environment;
-//
-//    if (executorInfo.command().has_environment()) {
-//      environment.CopyFrom(executorInfo.command().environment());
-//    }
-//
-//    Environment::Variable* variable = environment.add_variables();
-//    variable->set_name("FOO");
-//    variable->set_value("bar");
-//
-//    for(int i=0; i<environment.variables_size(); i++) {
-//      LOG(INFO) << "ENV: " << environment.variables(i).name() << ":" << environment.variables(i).value();
-//    }
-//
-//    return environment;
-//  }
-//
-//  virtual Try<Nothing> slavePostFetchHook(
-//      const ContainerID& containerId,
-//      const std::string& directory)
-//  {
-//    LOG(INFO) << "Executing 'slavePostFetchHook' hook";
-////    LOG(INFO) << "ContainerID: " << containerId.value() << ". directory: " << directory;
-//
-//    return Nothing();
-//  }
-//
-  virtual process::Future<Option<Environment>>
-    slavePreLaunchDockerEnvironmentDecorator(
-        const Option<TaskInfo>& taskInfo,
-        const ExecutorInfo& executorInfo,
-        const std::string& name,
-        const std::string& sandboxDirectory,
-        const std::string& mappedDirectory,
-        const Option<std::map<std::string, std::string>>& env)
+  virtual Result<Labels> masterLaunchTaskLabelDecorator(
+      const TaskInfo& taskInfo,
+      const FrameworkInfo& frameworkInfo,
+      const SlaveInfo& slaveInfo)
   {
-    LOG(INFO) << "Running 'slavePreLaunch...' hook";
+    LOG(INFO) << "Executing 'masterLaunchTaskLabelDecorator' hook";
+
+    Labels labels;
+
+    // Set one known label.
+    Label* newLabel = labels.add_labels();
+    newLabel->set_key(testLabelKey);
+    newLabel->set_value(testLabelValue);
+
+    // Remove the 'testRemoveLabelKey' label which was set by the test.
+    foreach (const Label& oldLabel, taskInfo.labels().labels()) {
+      if (oldLabel.key() != testRemoveLabelKey) {
+        labels.add_labels()->CopyFrom(oldLabel);
+      }
+    }
+
+    return labels;
+  }
+
+  virtual Try<Nothing> masterSlaveLostHook(const SlaveInfo& slaveInfo)
+  {
+    LOG(INFO) << "Executing 'masterSlaveLostHook' in agent '"
+              << slaveInfo.id() << "' hook";
+
+
+    return Nothing();
+  }
+
+
+  // TODO(nnielsen): Split hook tests into multiple modules to avoid
+  // interference.
+  virtual Result<Labels> slaveRunTaskLabelDecorator(
+      const TaskInfo& taskInfo,
+      const ExecutorInfo& executorInfo,
+      const FrameworkInfo& frameworkInfo,
+      const SlaveInfo& slaveInfo)
+  {
+    LOG(INFO) << "Executing 'slaveRunTaskLabelDecorator' hook";
+
+    Labels labels;
+
+    // Set one known label.
+    Label* newLabel = labels.add_labels();
+    newLabel->set_key("baz");
+    newLabel->set_value("qux");
+
+    // Remove label which was set by test.
+    foreach (const Label& oldLabel, taskInfo.labels().labels()) {
+      if (oldLabel.key() != "foo") {
+        labels.add_labels()->CopyFrom(oldLabel);
+      }
+    }
+
+    return labels;
+  }
+
+
+  // In this hook, we create a new environment variable "FOO" and set
+  // it's value to "bar".
+  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
+      const ExecutorInfo& executorInfo)
+  {
+    LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
 
     Environment environment;
 
@@ -92,32 +127,160 @@ public:
     }
 
     Environment::Variable* variable = environment.add_variables();
-    variable->set_name("VAULT_TOKEN");
-    variable->set_value("foobar");
-//    if (taskInfo.isSome()) {
-//      LOG(INFO) << "hook taskInfo name: " << taskInfo.get().name() << ". taskInfo id: " << taskInfo.get().task_id().value() << ". ContainerInfo: " << taskInfo.get().container().docker().image();
-//    }
-//
-//    LOG(INFO) << "hook name: " << name << ". sandboxdir: " << sandboxDirectory << ". mappeddir: " << mappedDirectory;
+    variable->set_name("FOO");
+    variable->set_value("bar");
 
     return environment;
   }
 
-//  virtual Try<Nothing> slavePreLaunchDockerHook(
-//      const ContainerInfo& containerInfo,
-//      const CommandInfo& commandInfo,
-//      const Option<TaskInfo>& taskInfo,
-//      const ExecutorInfo& executorInfo,
-//      const std::string& name,
-//      const std::string& sandboxDirectory,
-//      const std::string& mappedDirectory,
-//      const Option<Resources>& resources,
-//      const Option<std::map<std::string, std::string>>& env)
-//  {
-//    LOG(INFO) << "Running slavePreLaunchDockerHook hook";
-//    return Nothing();
-//  }
-//
+
+  // In this hook, look for the existence of a specific label.
+  // If found, return a `Failure`.
+  // Otherwise, add an environment variable to the task.
+  virtual Future<Option<Environment>> slavePreLaunchDockerEnvironmentDecorator(
+      const Option<TaskInfo>& taskInfo,
+      const ExecutorInfo& executorInfo,
+      const string& name,
+      const string& sandboxDirectory,
+      const string& mappedDirectory,
+      const Option<map<string, string>>& env)
+  {
+    LOG(INFO) << "Executing 'slavePreLaunchDockerEnvironmentDecorator' hook";
+
+    if (taskInfo.isSome()) {
+      foreach (const Label& label, taskInfo->labels().labels()) {
+        if (label.key() == testErrorLabelKey) {
+          return Failure("Spotted error label");
+        }
+      }
+    }
+
+    Environment environment;
+    Environment::Variable* variable = environment.add_variables();
+    variable->set_name("FOO_DOCKER");
+    variable->set_value("docker_bar");
+
+    return environment;
+  }
+
+
+  virtual Try<Nothing> slavePreLaunchDockerHook(
+      const ContainerInfo& containerInfo,
+      const CommandInfo& commandInfo,
+      const Option<TaskInfo>& taskInfo,
+      const ExecutorInfo& executorInfo,
+      const string& name,
+      const string& sandboxDirectory,
+      const string& mappedDirectory,
+      const Option<Resources>& resources,
+      const Option<map<string, string>>& env)
+  {
+    LOG(INFO) << "Executing 'slavePreLaunchDockerHook' hook";
+    return os::touch(path::join(sandboxDirectory, "foo"));
+  }
+
+
+  virtual Try<Nothing> slavePostFetchHook(
+      const ContainerID& containerId,
+      const string& directory)
+  {
+    LOG(INFO) << "Executing 'slavePostFetchHook' hook";
+
+    const string path = path::join(directory, "post_fetch_hook");
+
+    if (os::exists(path)) {
+      return os::rm(path);
+    } else {
+      return Nothing();
+    }
+  }
+
+
+  // This hook locates the file created by environment decorator hook
+  // and deletes it.
+  virtual Try<Nothing> slaveRemoveExecutorHook(
+      const FrameworkInfo& frameworkInfo,
+      const ExecutorInfo& executorInfo)
+  {
+    LOG(INFO) << "Executing 'slaveRemoveExecutorHook' hook";
+
+    return Nothing();
+  }
+
+
+  virtual Result<TaskStatus> slaveTaskStatusDecorator(
+      const FrameworkID& frameworkId,
+      const TaskStatus& status)
+  {
+    LOG(INFO) << "Executing 'slaveTaskStatusDecorator' hook";
+
+    Labels labels;
+
+    // Set one known label.
+    Label* newLabel = labels.add_labels();
+    newLabel->set_key("bar");
+    newLabel->set_value("qux");
+
+    // Remove label which was set by test.
+    foreach (const Label& oldLabel, status.labels().labels()) {
+      if (oldLabel.key() != "foo") {
+        labels.add_labels()->CopyFrom(oldLabel);
+      }
+    }
+
+    TaskStatus result;
+    result.mutable_labels()->CopyFrom(labels);
+
+    // Set an IP address, a network isolation group, and a known label
+    // in network info. This data is later validated by the
+    // 'HookTest.VerifySlaveTaskStatusDecorator' test.
+    NetworkInfo* networkInfo =
+      result.mutable_container_status()->add_network_infos();
+
+    NetworkInfo::IPAddress* ipAddress = networkInfo->add_ip_addresses();
+    ipAddress->set_ip_address("4.3.2.1");
+    networkInfo->add_groups("public");
+
+    Label* networkInfoLabel = networkInfo->mutable_labels()->add_labels();
+    networkInfoLabel->set_key("net_foo");
+    networkInfoLabel->set_value("net_bar");
+
+    return result;
+  }
+
+
+  virtual Result<Resources> slaveResourcesDecorator(
+      const SlaveInfo& slaveInfo)
+  {
+    LOG(INFO) << "Executing 'slaveResourcesDecorator' hook";
+
+    Resources resources;
+    // Remove the existing "cpus" resource, it will be overwritten by the
+    // current hook. Keep other resources unchanged.
+    foreach (const Resource& resource, slaveInfo.resources()) {
+      if (resource.name() != "cpus") {
+        resources += resource;
+      }
+    }
+
+    // Force the value of "cpus" to 4 and add a new custom resource named "foo"
+    // of type set.
+    resources += Resources::parse("cpus:4;foo:{bar,baz}").get();
+
+    return resources;
+  }
+
+
+  virtual Result<Attributes> slaveAttributesDecorator(
+      const SlaveInfo& slaveInfo)
+  {
+    LOG(INFO) << "Executing 'slaveAttributesDecorator' hook";
+
+    Attributes attributes = slaveInfo.attributes();
+    attributes.add(Attributes::parse("rack", "rack1"));
+
+    return attributes;
+}
 };
 
 
