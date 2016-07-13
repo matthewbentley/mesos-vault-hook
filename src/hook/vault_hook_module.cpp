@@ -49,6 +49,10 @@ public:
     variable->set_name("FOO");
     variable->set_value("bar");
 
+    for(int i=0; i<environment.variables_size(); i++) {
+      LOG(INFO) << "ENV: " << environment.variables(i).name() << ":" << environment.variables(i).value();
+    }
+
     return environment;
   }
 
@@ -57,7 +61,7 @@ public:
       const std::string& directory)
   {
     LOG(INFO) << "Executing 'slavePostFetchHook' hook";
-    LOG(INFO) << "ContainerID: " << containerId.value() << ". directory: " << directory;
+//    LOG(INFO) << "ContainerID: " << containerId.value() << ". directory: " << directory;
 
     return Nothing();
   }
@@ -71,11 +75,12 @@ public:
         const std::string& mappedDirectory,
         const Option<std::map<std::string, std::string>>& env)
   {
-    if (taskInfo.isSome()) {
-      LOG(INFO) << "hook taskInfo name: " << taskInfo.get().name() << ". taskInfo id: " << taskInfo.get().task_id().value() << ". ContainerInfo: " << taskInfo.get().container().docker().image();
-    }
-
-    LOG(INFO) << "hook name: " << name << ". sandboxdir: " << sandboxDirectory << ". mappeddir: " << mappedDirectory;
+    LOG(INFO) << "Running 'PreLaunch...' hook"; 
+//    if (taskInfo.isSome()) {
+//      LOG(INFO) << "hook taskInfo name: " << taskInfo.get().name() << ". taskInfo id: " << taskInfo.get().task_id().value() << ". ContainerInfo: " << taskInfo.get().container().docker().image();
+//    }
+//
+//    LOG(INFO) << "hook name: " << name << ". sandboxdir: " << sandboxDirectory << ". mappeddir: " << mappedDirectory;
     return None();
   }
 
