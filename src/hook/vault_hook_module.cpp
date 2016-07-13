@@ -63,6 +63,23 @@ public:
     return Nothing();
   }
 
+  virtual process::Future<Option<Environment>>
+    slavePreLaunchDockerEnvironmentDecorator(
+        const Option<TaskInfo>& taskInfo,
+        const ExecutorInfo& executorInfo,
+        const std::string& name,
+        const std::string& sandboxDirectory,
+        const std::string& mappedDirectory,
+        const Option<std::map<std::string, std::string>>& env)
+  {
+    if (taskInfo.isSome()) {
+      LOG(INFO) << "hook taskInfo name: " << taskInfo.get().name() << ". taskInfo id: " << taskInfo.get().task_id().value() << ". ContainerInfo: " << taskInfo.get().container().docker().image();
+    }
+
+    LOG(INFO) << "hook name: " << name << ". sandboxdir: " << sandboxDirectory << ". mappeddir: " << mappedDirectory;
+    return None();
+  }
+
 };
 
 
