@@ -24,6 +24,13 @@
 
 #include <process/protobuf.hpp>
 
+#include <process/future.hpp>
+
+#include <stout/none.hpp>
+#include <stout/nothing.hpp>
+#include <stout/result.hpp>
+#include <stout/try.hpp>
+
 using namespace mesos;
 
 using process::Future;
@@ -82,6 +89,21 @@ public:
 //
 //    LOG(INFO) << "hook name: " << name << ". sandboxdir: " << sandboxDirectory << ". mappeddir: " << mappedDirectory;
     return None();
+  }
+
+  virtual Try<Nothing> slavePreLaunchDockerHook(
+      const ContainerInfo& containerInfo,
+      const CommandInfo& commandInfo,
+      const Option<TaskInfo>& taskInfo,
+      const ExecutorInfo& executorInfo,
+      const std::string& name,
+      const std::string& sandboxDirectory,
+      const std::string& mappedDirectory,
+      const Option<Resources>& resources,
+      const Option<std::map<std::string, std::string>>& env)
+  {
+    LOG(INFO) << "Running slavePreLaunchDockerHook hook";
+    return Nothing();
   }
 
 };
