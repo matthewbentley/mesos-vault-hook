@@ -30,6 +30,7 @@
 #include <stout/nothing.hpp>
 #include <stout/result.hpp>
 #include <stout/try.hpp>
+#include <stout/option.hpp>
 
 using namespace mesos;
 
@@ -38,41 +39,41 @@ using process::Future;
 class VaultHook : public Hook
 {
 public:
-  // In this hook, we create a new environment variable "FOO" and set
-  // it's value to "bar".
-  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
-      const ExecutorInfo& executorInfo)
-  {
-    LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
-    LOG(INFO) << "Name: " << executorInfo.name();
-
-    Environment environment;
-
-    if (executorInfo.command().has_environment()) {
-      environment.CopyFrom(executorInfo.command().environment());
-    }
-
-    Environment::Variable* variable = environment.add_variables();
-    variable->set_name("FOO");
-    variable->set_value("bar");
-
-    for(int i=0; i<environment.variables_size(); i++) {
-      LOG(INFO) << "ENV: " << environment.variables(i).name() << ":" << environment.variables(i).value();
-    }
-
-    return environment;
-  }
-
-  virtual Try<Nothing> slavePostFetchHook(
-      const ContainerID& containerId,
-      const std::string& directory)
-  {
-    LOG(INFO) << "Executing 'slavePostFetchHook' hook";
-//    LOG(INFO) << "ContainerID: " << containerId.value() << ". directory: " << directory;
-
-    return Nothing();
-  }
-
+//  // In this hook, we create a new environment variable "FOO" and set
+//  // it's value to "bar".
+//  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
+//      const ExecutorInfo& executorInfo)
+//  {
+//    LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
+//    LOG(INFO) << "Name: " << executorInfo.name();
+//
+//    Environment environment;
+//
+//    if (executorInfo.command().has_environment()) {
+//      environment.CopyFrom(executorInfo.command().environment());
+//    }
+//
+//    Environment::Variable* variable = environment.add_variables();
+//    variable->set_name("FOO");
+//    variable->set_value("bar");
+//
+//    for(int i=0; i<environment.variables_size(); i++) {
+//      LOG(INFO) << "ENV: " << environment.variables(i).name() << ":" << environment.variables(i).value();
+//    }
+//
+//    return environment;
+//  }
+//
+//  virtual Try<Nothing> slavePostFetchHook(
+//      const ContainerID& containerId,
+//      const std::string& directory)
+//  {
+//    LOG(INFO) << "Executing 'slavePostFetchHook' hook";
+////    LOG(INFO) << "ContainerID: " << containerId.value() << ". directory: " << directory;
+//
+//    return Nothing();
+//  }
+//
   virtual process::Future<Option<Environment>>
     slavePreLaunchDockerEnvironmentDecorator(
         const Option<TaskInfo>& taskInfo,
@@ -82,30 +83,41 @@ public:
         const std::string& mappedDirectory,
         const Option<std::map<std::string, std::string>>& env)
   {
-    LOG(INFO) << "Running 'PreLaunch...' hook"; 
+    LOG(INFO) << "Running 'slavePreLaunch...' hook";
+
+    Environment environment;
+
+    if (executorInfo.command().has_environment()) {
+      environment.CopyFrom(executorInfo.command().environment());
+    }
+
+    Environment::Variable* variable = environment.add_variables();
+    variable->set_name("VAULT_TOKEN");
+    variable->set_value("foobar");
 //    if (taskInfo.isSome()) {
 //      LOG(INFO) << "hook taskInfo name: " << taskInfo.get().name() << ". taskInfo id: " << taskInfo.get().task_id().value() << ". ContainerInfo: " << taskInfo.get().container().docker().image();
 //    }
 //
 //    LOG(INFO) << "hook name: " << name << ". sandboxdir: " << sandboxDirectory << ". mappeddir: " << mappedDirectory;
-    return None();
+
+    return environment;
   }
 
-  virtual Try<Nothing> slavePreLaunchDockerHook(
-      const ContainerInfo& containerInfo,
-      const CommandInfo& commandInfo,
-      const Option<TaskInfo>& taskInfo,
-      const ExecutorInfo& executorInfo,
-      const std::string& name,
-      const std::string& sandboxDirectory,
-      const std::string& mappedDirectory,
-      const Option<Resources>& resources,
-      const Option<std::map<std::string, std::string>>& env)
-  {
-    LOG(INFO) << "Running slavePreLaunchDockerHook hook";
-    return Nothing();
-  }
-
+//  virtual Try<Nothing> slavePreLaunchDockerHook(
+//      const ContainerInfo& containerInfo,
+//      const CommandInfo& commandInfo,
+//      const Option<TaskInfo>& taskInfo,
+//      const ExecutorInfo& executorInfo,
+//      const std::string& name,
+//      const std::string& sandboxDirectory,
+//      const std::string& mappedDirectory,
+//      const Option<Resources>& resources,
+//      const Option<std::map<std::string, std::string>>& env)
+//  {
+//    LOG(INFO) << "Running slavePreLaunchDockerHook hook";
+//    return Nothing();
+//  }
+//
 };
 
 
