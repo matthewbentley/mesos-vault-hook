@@ -37,7 +37,6 @@ public:
       const ExecutorInfo& executorInfo)
   {
     LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
-    LOG(INFO) << "C++ is fun! hook";
     LOG(INFO) << "Name: " << executorInfo.name();
 
     Environment environment;
