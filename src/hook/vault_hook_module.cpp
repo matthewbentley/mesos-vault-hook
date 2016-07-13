@@ -51,70 +51,9 @@ const char* testErrorLabelKey = "MESOS_Test_Error_Label";
 class VaultHook : public Hook
 {
 public:
-  virtual Result<Labels> masterLaunchTaskLabelDecorator(
-      const TaskInfo& taskInfo,
-      const FrameworkInfo& frameworkInfo,
-      const SlaveInfo& slaveInfo)
-  {
-    LOG(INFO) << "Executing 'masterLaunchTaskLabelDecorator' hook";
-
-    Labels labels;
-
-    // Set one known label.
-    Label* newLabel = labels.add_labels();
-    newLabel->set_key(testLabelKey);
-    newLabel->set_value(testLabelValue);
-
-    // Remove the 'testRemoveLabelKey' label which was set by the test.
-    foreach (const Label& oldLabel, taskInfo.labels().labels()) {
-      if (oldLabel.key() != testRemoveLabelKey) {
-        labels.add_labels()->CopyFrom(oldLabel);
-      }
-    }
-
-    return labels;
-  }
-
-  virtual Try<Nothing> masterSlaveLostHook(const SlaveInfo& slaveInfo)
-  {
-    LOG(INFO) << "Executing 'masterSlaveLostHook' in agent '"
-              << slaveInfo.id() << "' hook";
-
-
-    return Nothing();
-  }
-
-
-  // TODO(nnielsen): Split hook tests into multiple modules to avoid
-  // interference.
-  virtual Result<Labels> slaveRunTaskLabelDecorator(
-      const TaskInfo& taskInfo,
-      const ExecutorInfo& executorInfo,
-      const FrameworkInfo& frameworkInfo,
-      const SlaveInfo& slaveInfo)
-  {
-    LOG(INFO) << "Executing 'slaveRunTaskLabelDecorator' hook";
-
-    Labels labels;
-
-    // Set one known label.
-    Label* newLabel = labels.add_labels();
-    newLabel->set_key("baz");
-    newLabel->set_value("qux");
-
-    // Remove label which was set by test.
-    foreach (const Label& oldLabel, taskInfo.labels().labels()) {
-      if (oldLabel.key() != "foo") {
-        labels.add_labels()->CopyFrom(oldLabel);
-      }
-    }
-
-    return labels;
-  }
-
-
   // In this hook, we create a new environment variable "FOO" and set
   // it's value to "bar".
+  // works: runs
   virtual Result<Environment> slaveExecutorEnvironmentDecorator(
       const ExecutorInfo& executorInfo)
   {
@@ -137,6 +76,7 @@ public:
   // In this hook, look for the existence of a specific label.
   // If found, return a `Failure`.
   // Otherwise, add an environment variable to the task.
+  // works: no
   virtual Future<Option<Environment>> slavePreLaunchDockerEnvironmentDecorator(
       const Option<TaskInfo>& taskInfo,
       const ExecutorInfo& executorInfo,
@@ -164,6 +104,7 @@ public:
   }
 
 
+  // works: runs
   virtual Try<Nothing> slavePreLaunchDockerHook(
       const ContainerInfo& containerInfo,
       const CommandInfo& commandInfo,
@@ -180,6 +121,7 @@ public:
   }
 
 
+  // works: no
   virtual Try<Nothing> slavePostFetchHook(
       const ContainerID& containerId,
       const string& directory)
@@ -195,92 +137,6 @@ public:
     }
   }
 
-
-  // This hook locates the file created by environment decorator hook
-  // and deletes it.
-  virtual Try<Nothing> slaveRemoveExecutorHook(
-      const FrameworkInfo& frameworkInfo,
-      const ExecutorInfo& executorInfo)
-  {
-    LOG(INFO) << "Executing 'slaveRemoveExecutorHook' hook";
-
-    return Nothing();
-  }
-
-
-  virtual Result<TaskStatus> slaveTaskStatusDecorator(
-      const FrameworkID& frameworkId,
-      const TaskStatus& status)
-  {
-    LOG(INFO) << "Executing 'slaveTaskStatusDecorator' hook";
-
-    Labels labels;
-
-    // Set one known label.
-    Label* newLabel = labels.add_labels();
-    newLabel->set_key("bar");
-    newLabel->set_value("qux");
-
-    // Remove label which was set by test.
-    foreach (const Label& oldLabel, status.labels().labels()) {
-      if (oldLabel.key() != "foo") {
-        labels.add_labels()->CopyFrom(oldLabel);
-      }
-    }
-
-    TaskStatus result;
-    result.mutable_labels()->CopyFrom(labels);
-
-    // Set an IP address, a network isolation group, and a known label
-    // in network info. This data is later validated by the
-    // 'HookTest.VerifySlaveTaskStatusDecorator' test.
-    NetworkInfo* networkInfo =
-      result.mutable_container_status()->add_network_infos();
-
-    NetworkInfo::IPAddress* ipAddress = networkInfo->add_ip_addresses();
-    ipAddress->set_ip_address("4.3.2.1");
-    networkInfo->add_groups("public");
-
-    Label* networkInfoLabel = networkInfo->mutable_labels()->add_labels();
-    networkInfoLabel->set_key("net_foo");
-    networkInfoLabel->set_value("net_bar");
-
-    return result;
-  }
-
-
-  virtual Result<Resources> slaveResourcesDecorator(
-      const SlaveInfo& slaveInfo)
-  {
-    LOG(INFO) << "Executing 'slaveResourcesDecorator' hook";
-
-    Resources resources;
-    // Remove the existing "cpus" resource, it will be overwritten by the
-    // current hook. Keep other resources unchanged.
-    foreach (const Resource& resource, slaveInfo.resources()) {
-      if (resource.name() != "cpus") {
-        resources += resource;
-      }
-    }
-
-    // Force the value of "cpus" to 4 and add a new custom resource named "foo"
-    // of type set.
-    resources += Resources::parse("cpus:4;foo:{bar,baz}").get();
-
-    return resources;
-  }
-
-
-  virtual Result<Attributes> slaveAttributesDecorator(
-      const SlaveInfo& slaveInfo)
-  {
-    LOG(INFO) << "Executing 'slaveAttributesDecorator' hook";
-
-    Attributes attributes = slaveInfo.attributes();
-    attributes.add(Attributes::parse("rack", "rack1"));
-
-    return attributes;
-}
 };
 
 
