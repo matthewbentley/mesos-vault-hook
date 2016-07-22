@@ -26,11 +26,21 @@
 
 #include <mesos/module/hook.hpp>
 
+#include <process/future.hpp>
+#include <process/process.hpp>
+#include <process/protobuf.hpp>
+
+#include <stout/foreach.hpp>
+#include <stout/os.hpp>
+#include <stout/try.hpp>
+
 #include <stout/result.hpp>
 
 #include <curl/curl.h>
 
 using namespace mesos;
+
+using process::Future;
 
 using std::map;
 using std::string;
@@ -48,11 +58,21 @@ public:
   // In this hook, we create a new environment variable "FOO" and set
   // it's value to "bar".
   // works: runs
-  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
-      const ExecutorInfo& executorInfo)
+//  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
+//      const ExecutorInfo& executorInfo)
+//  {
+  virtual process::Future<Option<Environment>>
+    slavePreLaunchDockerEnvironmentDecorator(
+        const Option<TaskInfo>& taskInfo,
+        const ExecutorInfo& executorInfo,
+        const std::string& name,
+        const std::string& sandboxDirectory,
+        const std::string& mappedDirectory,
+        const Option<std::map<std::string, std::string>>& env)
   {
     LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
     LOG(INFO) << "ExecutorID: " << executorInfo.executor_id().value() << ". Name: " << executorInfo.name() << ". CommandInfoValue: " << executorInfo.command().value() << ".";
+    LOG(INFO) << "Name: " << name << ". TaskInfo.name: " << taskInfo.name() << ". taskInfo.taskId: " << taskInfo.task_id().value();
 
     std::string token;
     std::ifstream myfile ("/root/.vault-token");
