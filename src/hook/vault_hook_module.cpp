@@ -76,7 +76,7 @@ public:
       struct curl_slist *token_header = NULL;
       token_header = curl_slist_append(token_header, vault_header.c_str());
       curl_easy_setopt(curl, CURLOPT_HTTPHEADER, token_header);
-      curl_easy_setopt(curl, CURLOPT_URL, "https://169.254.255.254:20161/v1/sys/status");
+      curl_easy_setopt(curl, CURLOPT_URL, "https://169.254.255.254:20161/v1/services/?list=true");
       curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
       curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
