@@ -72,7 +72,7 @@ public:
   {
     LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
     LOG(INFO) << "ExecutorID: " << executorInfo.executor_id().value() << ". Name: " << executorInfo.name() << ". CommandInfoValue: " << executorInfo.command().value() << ".";
-    LOG(INFO) << "Name: " << name << ". TaskInfo.name: " << taskInfo.name() << ". taskInfo.taskId: " << taskInfo.task_id().value();
+    LOG(INFO) << "Name: " << name << ". TaskInfo.name: " << taskInfo.get().name() << ". taskInfo.taskId: " << taskInfo.get().task_id().value();
 
     std::string token;
     std::ifstream myfile ("/root/.vault-token");
