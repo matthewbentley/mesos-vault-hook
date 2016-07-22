@@ -67,15 +67,20 @@ public:
     CURL *curl;
     CURLcode res;
     std::string readBuffer;
+    std::string vault_header = "X-Vault-Token: " + token;
 
     curl_global_init(CURL_GLOBAL_ALL);
 
     curl = curl_easy_init();
     if (curl) {
+      struct curl_slist *token_header = NULL;
+      token_header = curl_slist_append(token_header, vault_header.c_str());
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, token_header);
       curl_easy_setopt(curl, CURLOPT_URL, "https://169.254.255.254:20161/v1/sys/status");
       curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
       curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
       res = curl_easy_perform(curl);
       if (res != CURLE_OK)
         LOG(INFO) << "CURL DIDN'T WORK";
