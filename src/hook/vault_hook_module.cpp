@@ -28,6 +28,8 @@
 
 #include <stout/result.hpp>
 
+#include <curl/curl.h>
+
 using namespace mesos;
 using namespace std;
 
@@ -56,6 +58,24 @@ public:
     else token = "NOTOKEN";
 
     LOG(INFO) << "TOKEN: " << token;
+
+    CURL *curl;
+    CURLcode res;
+
+    curl_global_init(CURL_GLOBAL_ALL);
+
+    curl = curl_easy_init();
+    if (curl) {
+      curl_easy_setopt(curl, CURLOPT_URL, "https://169.254.255.254:20161/v1/sys/status");
+      curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+      res = curl_easy_perform(curl);
+      if (res != CURLE_OK)
+        LOG(INFO) << "CURL DIDN'T WORK";
+      else
+        LOG(INFO) << "CURL WORKED";
+      curl_easy_cleanup(curl);
+    }
+    curl_global_cleanup();
 
     Environment environment;
 
