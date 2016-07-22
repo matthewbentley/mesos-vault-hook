@@ -58,21 +58,11 @@ public:
   // In this hook, we create a new environment variable "FOO" and set
   // it's value to "bar".
   // works: runs
-//  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
-//      const ExecutorInfo& executorInfo)
-//  {
-  virtual process::Future<Option<Environment>>
-    slavePreLaunchDockerEnvironmentDecorator(
-        const Option<TaskInfo>& taskInfo,
-        const ExecutorInfo& executorInfo,
-        const std::string& name,
-        const std::string& sandboxDirectory,
-        const std::string& mappedDirectory,
-        const Option<std::map<std::string, std::string>>& env)
+  virtual Result<Environment> slaveExecutorEnvironmentDecorator(
+      const ExecutorInfo& executorInfo)
   {
     LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
     LOG(INFO) << "ExecutorID: " << executorInfo.executor_id().value() << ". Name: " << executorInfo.name() << ". CommandInfoValue: " << executorInfo.command().value() << ".";
-    LOG(INFO) << "Name: " << name << ". TaskInfo.name: " << taskInfo.get().name() << ". taskInfo.taskId: " << taskInfo.get().task_id().value();
 
     std::string token;
     std::ifstream myfile ("/root/.vault-token");
