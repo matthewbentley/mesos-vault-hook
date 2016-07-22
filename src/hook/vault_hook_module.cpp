@@ -31,10 +31,15 @@
 #include <curl/curl.h>
 
 using namespace mesos;
-using namespace std;
 
 using std::map;
 using std::string;
+
+
+static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp) {
+  ((std::string*)userp)->append((char*)contents, size * nmemb);
+  return size * nmemb;
+}
 
 
 class VaultHook : public Hook
@@ -49,8 +54,8 @@ public:
     LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
     LOG(INFO) << "ExecutorID: " << executorInfo.executor_id().value() << ". Name: " << executorInfo.name() << ". CommandInfoValue: " << executorInfo.command().value() << ".";
 
-    string token;
-    ifstream myfile ("/root/.vault-token");
+    std::string token;
+    std::ifstream myfile ("/root/.vault-token");
     if (myfile.is_open()) {
       getline(myfile, token);
       myfile.close();
@@ -61,6 +66,7 @@ public:
 
     CURL *curl;
     CURLcode res;
+    std::string readBuffer;
 
     curl_global_init(CURL_GLOBAL_ALL);
 
@@ -68,11 +74,14 @@ public:
     if (curl) {
       curl_easy_setopt(curl, CURLOPT_URL, "https://169.254.255.254:20161/v1/sys/status");
       curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
       res = curl_easy_perform(curl);
       if (res != CURLE_OK)
         LOG(INFO) << "CURL DIDN'T WORK";
       else
         LOG(INFO) << "CURL WORKED";
+      LOG(INFO) << "Curl output: " << readBuffer;
       curl_easy_cleanup(curl);
     }
     curl_global_cleanup();
