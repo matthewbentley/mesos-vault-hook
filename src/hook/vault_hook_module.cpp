@@ -16,6 +16,10 @@
  * limitations under the License.
  */
 
+#include <iostream>
+#include <fstream>
+#include <string>
+
 #include <mesos/hook.hpp>
 #include <mesos/mesos.hpp>
 #include <mesos/module.hpp>
@@ -25,6 +29,7 @@
 #include <stout/result.hpp>
 
 using namespace mesos;
+using namespace std;
 
 using std::map;
 using std::string;
@@ -41,6 +46,16 @@ public:
   {
     LOG(INFO) << "Executing 'slaveExecutorEnvironmentDecorator' hook";
     LOG(INFO) << "ExecutorID: " << executorInfo.executor_id().value() << ". Name: " << executorInfo.name() << ". CommandInfoValue: " << executorInfo.command().value() << ".";
+
+    string token;
+    ifstream myfile ("/root/.vault-token");
+    if (myfile.is_open()) {
+      getline(myfile, token);
+      myfile.close();
+    }
+    else token = "NOTOKEN";
+
+    LOG(INFO) << "TOKEN: " << token;
 
     Environment environment;
 
